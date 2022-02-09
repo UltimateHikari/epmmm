@@ -66,11 +66,26 @@ class JModel{
         JModel(JInput const& input_): input(input_){
             init();
             init_heat_sources();
+            init_start_values();
         };
         ~JModel();
         void init();
         void virtual init_heat_sources();
+        void virtual init_start_values(){};
         void switch_models();
+        inline float x(int i){
+            return Xa + i*hx;
+        }
+        inline float y(int j){
+            return Ya + j*hy;
+        }
+        inline float phi_n(int i, int j){
+            return *(current_model + i*input.Ny + j);
+        }
+        inline float p(int i, int j){
+            return *(heat_sources + i*input.Ny + j);
+        }
+        void dump(); //TODO
 };
 
 void JModel::init(){
@@ -94,7 +109,28 @@ void JModel::switch_models(){
 }
 
 void JModel::init_heat_sources(){
+    const float Xs1 = Xa + (Xb - Xa)/3;
+    const float Xs2 = Xa + (Xb - Xa)*2/3;
+    const float Ys1 = Ya + (Yb - Ya)/3;
+    const float Ys2 = Ya + (Yb - Ya)*2/3;
+    const float R = 0.1*std::min(std::abs(Xb-Xa), std::abs(Yb-Ya));
+    const float source = 0.1f;
+    const float sink = -0.1f;
 
+    for(int i = 0; i < input.Nx; i++){
+        for(int j = 0; j < input.Ny; j++){
+            int ind = i*input.Ny + j;
+            if( (x(i) - Xs1)*(x(i) - Xs1) + (y(i) - Ys1)*(y(i) - Ys1) < R*R){
+                heat_sources[ind] = source;
+                continue;
+            }
+            if( (x(i) - Xs2)*(x(i) - Xs2) + (y(i) - Ys2)*(y(i) - Ys2) < R*R){
+                heat_sources[ind] = sink;
+                continue;
+            }
+            heat_sources[ind] = 0.0f;
+        }
+    }
 }
 
 
