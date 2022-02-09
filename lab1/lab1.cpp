@@ -52,7 +52,7 @@ void JInput::debug(){
 ////////////////////////////////////
 
 class JModel{
-    public:
+    private:
         JInput const& input;
         float * current_model;
         float * next_model;
@@ -63,12 +63,7 @@ class JModel{
         const float Yb = 4.0f;
         float hx;
         float hy;
-        JModel(JInput const& input_): input(input_){
-            init();
-            init_heat_sources();
-            init_start_values();
-        };
-        ~JModel();
+    
         void init();
         void virtual init_heat_sources();
         void virtual init_start_values(){};
@@ -85,7 +80,16 @@ class JModel{
         inline float p(int i, int j){
             return *(heat_sources + i*input.Ny + j);
         }
-        void dump(); //TODO
+        float predict_iteration();
+    public:
+        JModel(JInput const& input_): input(input_){
+            init();
+            init_heat_sources();
+            init_start_values();
+        };
+        ~JModel();
+        void predict();
+        void dump();
 };
 
 void JModel::init(){
@@ -133,8 +137,34 @@ void JModel::init_heat_sources(){
     }
 }
 
+float JModel::predict_iteration(){
+    //TODO:stub; returns max delta
+    return 0.0;
+}
+
+void JModel::predict(){
+    float delta, prev_delta = 0.0f
+    for(int i = 0; i < this->input.T; i++){
+        delta = predict_iteration();
+        switch_models();
+        if(delta > prev_delta && i > 0){
+            std::cerr << "Delta error on iteration " << i+1 << std::endl;
+            std::exit(-1);
+        }
+    }
+}
+
+void JModel::dump(){
+    // TODO:stub
+    // dumps model in file for visualisation
+}
+
+///////////////
 
 int main(int argc, char const ** argv){
     JInput* input = new JInput(argc, argv);
     input->debug();
+    JModel* model = new JModel(*input);
+    model->predict();
+    model->dump();
 }
