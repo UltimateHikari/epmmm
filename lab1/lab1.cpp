@@ -76,11 +76,14 @@ class JModel{
         inline float y(int j){
             return Ya + j*hy;
         }
+        inline int ind(int i, int j){
+            return i*input.Nx + j;
+        }
         inline float phi_n(int i, int j){
-            return *(current_model + i*input.Ny + j);
+            return *(current_model + ind(i,j));
         }
         inline float p(int i, int j){
-            return *(heat_sources + i*input.Ny + j);
+            return *(heat_sources + ind(i,j));
         }
         float predict_iteration();
     public:
@@ -123,28 +126,36 @@ void JModel::init_heat_sources(){
     const float source = 0.1f;
     const float sink = -0.1f;
 
-    for(int i = 0; i < input.Nx; i++){
-        for(int j = 0; j < input.Ny; j++){
-            int ind = i*input.Ny + j;
-            if( (x(i) - Xs1)*(x(i) - Xs1) + (y(i) - Ys1)*(y(i) - Ys1) < R*R){
-                heat_sources[ind] = source;
+    std::cerr << Xs1 << " " << Xs2 << " " << Ys1 << " " << Ys2 << " " << R <<std::endl;
+
+    for(int i = 0; i < input.Ny; i++){
+        for(int j = 0; j < input.Nx; j++){
+            int index = JModel::ind(i,j);
+            ////
+            // heat_sources[index] = x(i);
+            // continue;
+            ////
+            if( ((x(j) - Xs1)*(x(j) - Xs1) + (y(i) - Ys1)*(y(i) - Ys1)) < R*R){
+                heat_sources[index] = source;
+                std::cerr << i << " " << j << std::endl;
                 continue;
             }
-            if( (x(i) - Xs2)*(x(i) - Xs2) + (y(i) - Ys2)*(y(i) - Ys2) < R*R){
-                heat_sources[ind] = sink;
+            if( ((x(j) - Xs2)*(x(j) - Xs2) + (y(i) - Ys2)*(y(i) - Ys2)) < R*R){
+                heat_sources[index] = sink;
+                std::cerr << i << " " << j << std::endl;
                 continue;
             }
-            heat_sources[ind] = 0.0f;
+            heat_sources[index] = 0.0f;
         }
     }
 }
 
 float JModel::predict_iteration(){
     float delta = 0.0f;
-    for(int i = 1; i < input.Nx - 1; i++){
-        for(int j = 1; j < input.Ny - 1; j++){
-            int ind = i*input.Ny + j;
-            next_model[ind] = 
+    for(int i = 1; i < input.Ny - 1; i++){
+        for(int j = 1; j < input.Nx - 1; j++){
+            int index = JModel::ind(i,j);
+            next_model[index] = 
             (1/5)*(1/(1/(hx*hx) + 1/(hy*hy)))*(
                 (1/2)*(5/(hx*hx) + 1/(hy*hy))*(phi_n(i, j - 1) - phi_n(i, j + 1)) + 
                 (1/2)*(5/(hy*hy) + 1/(hx*hx))*(phi_n(i - 1, j) - phi_n(i + 1, j)) + 
@@ -154,7 +165,7 @@ float JModel::predict_iteration(){
                 (1/4)*
                     (p(i - 1, j) + p(i - 1, j) + p(i, j - 1) + p(i, j + 1))
             );
-            float cur_delta = std::fabs(next_model[ind] - current_model[ind]);
+            float cur_delta = std::fabs(next_model[index] - current_model[index]);
             if(cur_delta > delta){
                 delta = cur_delta;
             }
@@ -178,8 +189,8 @@ void JModel::predict(){
 
 void JModel::dump(){
     std::ofstream fout("out.txt");
-    for(int i = 0; i < input.Nx; i++){
-        for(int j = 0; j < input.Ny; j++){
+    for(int i = 0; i < input.Ny; i++){
+        for(int j = 0; j < input.Nx; j++){
             fout << p(i,j) << " ";
         }
         fout << std::endl;
