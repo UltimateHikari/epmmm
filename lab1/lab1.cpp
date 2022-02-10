@@ -1,6 +1,8 @@
 #include <iostream>
+#include <fstream>
 #include <string>
 #include <stdexcept>
+#include <cmath>
 
 /**
  * JSomething stands for
@@ -138,15 +140,35 @@ void JModel::init_heat_sources(){
 }
 
 float JModel::predict_iteration(){
-    //TODO:stub; returns max delta
-    return 0.0;
+    float delta = 0.0f;
+    for(int i = 1; i < input.Nx - 1; i++){
+        for(int j = 1; j < input.Ny - 1; j++){
+            int ind = i*input.Ny + j;
+            next_model[ind] = 
+            (1/5)*(1/(1/(hx*hx) + 1/(hy*hy)))*(
+                (1/2)*(5/(hx*hx) + 1/(hy*hy))*(phi_n(i, j - 1) - phi_n(i, j + 1)) + 
+                (1/2)*(5/(hy*hy) + 1/(hx*hx))*(phi_n(i - 1, j) - phi_n(i + 1, j)) + 
+                (1/4)*(1/(hx*hx) + 1/(hy*hy))*
+                    (phi_n(i - 1, j - 1) - phi_n(i - 1, j + 1) + phi_n(i + 1, j - 1) + phi_n(i + 1, j + 1)) +
+                2*p(i,j) +
+                (1/4)*
+                    (p(i - 1, j) + p(i - 1, j) + p(i, j - 1) + p(i, j + 1))
+            );
+            float cur_delta = std::fabs(next_model[ind] - current_model[ind]);
+            if(cur_delta > delta){
+                delta = cur_delta;
+            }
+        }
+    }
+    return delta;
 }
 
 void JModel::predict(){
-    float delta, prev_delta = 0.0f
+    float delta, prev_delta = 0.0f;
     for(int i = 0; i < this->input.T; i++){
         delta = predict_iteration();
         switch_models();
+        std::cerr << delta << "; ";
         if(delta > prev_delta && i > 0){
             std::cerr << "Delta error on iteration " << i+1 << std::endl;
             std::exit(-1);
@@ -155,8 +177,14 @@ void JModel::predict(){
 }
 
 void JModel::dump(){
-    // TODO:stub
-    // dumps model in file for visualisation
+    std::ofstream fout("out.txt");
+    for(int i = 0; i < input.Nx; i++){
+        for(int j = 0; j < input.Ny; j++){
+            fout << p(i,j) << " ";
+        }
+        fout << std::endl;
+    }
+    fout.close();
 }
 
 ///////////////
