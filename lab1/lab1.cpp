@@ -94,6 +94,7 @@ class JModel{
         };
         ~JModel();
         void predict();
+        void dumph();
         void dump();
 };
 
@@ -182,7 +183,7 @@ void JModel::predict(){
     }
 }
 
-void JModel::dump(){
+void JModel::dumph(){
     std::ofstream fout("out.txt");
     for(int i = 0; i < input.Ny; i++){
         for(int j = 0; j < input.Nx; j++){
@@ -191,6 +192,13 @@ void JModel::dump(){
         fout << std::endl;
     }
     fout.close();
+}
+
+void JModel::dump(){
+    if(std::FILE* f1 = std::fopen("out.bin", "wb")) {
+        std::fwrite(static_cast<void*>(current_model), sizeof(float), input.Nx*input.Ny, f1);
+        std::fclose(f1);
+    }
 }
 
 ///////////////
