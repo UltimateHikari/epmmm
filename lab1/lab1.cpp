@@ -131,18 +131,12 @@ void JModel::init_heat_sources(){
     for(int i = 0; i < input.Ny; i++){
         for(int j = 0; j < input.Nx; j++){
             int index = JModel::ind(i,j);
-            ////
-            // heat_sources[index] = x(i);
-            // continue;
-            ////
             if( ((x(j) - Xs1)*(x(j) - Xs1) + (y(i) - Ys1)*(y(i) - Ys1)) < R*R){
                 heat_sources[index] = source;
-                std::cerr << i << " " << j << std::endl;
                 continue;
             }
             if( ((x(j) - Xs2)*(x(j) - Xs2) + (y(i) - Ys2)*(y(i) - Ys2)) < R*R){
                 heat_sources[index] = sink;
-                std::cerr << i << " " << j << std::endl;
                 continue;
             }
             heat_sources[index] = 0.0f;
@@ -156,13 +150,13 @@ float JModel::predict_iteration(){
         for(int j = 1; j < input.Nx - 1; j++){
             int index = JModel::ind(i,j);
             next_model[index] = 
-            (1/5)*(1/(1/(hx*hx) + 1/(hy*hy)))*(
-                (1/2)*(5/(hx*hx) + 1/(hy*hy))*(phi_n(i, j - 1) - phi_n(i, j + 1)) + 
-                (1/2)*(5/(hy*hy) + 1/(hx*hx))*(phi_n(i - 1, j) - phi_n(i + 1, j)) + 
-                (1/4)*(1/(hx*hx) + 1/(hy*hy))*
-                    (phi_n(i - 1, j - 1) - phi_n(i - 1, j + 1) + phi_n(i + 1, j - 1) + phi_n(i + 1, j + 1)) +
+            (.5f)*(1.f/(1.f/(hx*hx) + 1.f/(hy*hy)))*(
+                (.5f)*(5.f/(hx*hx) + 1.f/(hy*hy))*(phi_n(i, j - 1) - phi_n(i, j + 1)) + 
+                (.5f)*(5.f/(hy*hy) + 1.f/(hx*hx))*(phi_n(i - 1, j) - phi_n(i + 1, j)) + 
+                (.25f)*(1.f/(hx*hx) + 1.f/(hy*hy))*
+                    (phi_n(i - 1, j - 1) - phi_n(i - 1, j + 1) + phi_n(i + 1, j - 1) + phi_n(i + 1, j + 1)) + 
                 2*p(i,j) +
-                (1/4)*
+                (.25f)*
                     (p(i - 1, j) + p(i - 1, j) + p(i, j - 1) + p(i, j + 1))
             );
             float cur_delta = std::fabs(next_model[index] - current_model[index]);
@@ -184,6 +178,7 @@ void JModel::predict(){
             std::cerr << "Delta error on iteration " << i+1 << std::endl;
             std::exit(-1);
         }
+        prev_delta = delta;
     }
 }
 
@@ -191,7 +186,7 @@ void JModel::dump(){
     std::ofstream fout("out.txt");
     for(int i = 0; i < input.Ny; i++){
         for(int j = 0; j < input.Nx; j++){
-            fout << p(i,j) << " ";
+            fout << phi_n(i,j) << " ";
         }
         fout << std::endl;
     }
