@@ -70,11 +70,11 @@ class JModel{
         void virtual init_heat_sources();
         void virtual init_start_values(){};
         void switch_models();
-        inline float x(int i){
-            return Xa + i*hx;
+        inline float x(int j){
+            return Xa + j*hx;
         }
-        inline float y(int j){
-            return Ya + j*hy;
+        inline float y(int i){
+            return Ya + i*hy;
         }
         inline int ind(int i, int j){
             return i*input.Nx + j;
@@ -151,11 +151,11 @@ float JModel::predict_iteration(){
         for(int j = 1; j < input.Nx - 1; j++){
             int index = JModel::ind(i,j);
             next_model[index] = 
-            (.5f)*(1.f/(1.f/(hx*hx) + 1.f/(hy*hy)))*(
-                (.5f)*(5.f/(hx*hx) + 1.f/(hy*hy))*(phi_n(i, j - 1) - phi_n(i, j + 1)) + 
-                (.5f)*(5.f/(hy*hy) + 1.f/(hx*hx))*(phi_n(i - 1, j) - phi_n(i + 1, j)) + 
+            (1.f/(5.f/(hx*hx) + 5.f/(hy*hy)))*(
+                (.5f)*(5.f/(hx*hx) - 1.f/(hy*hy))*(phi_n(i, j - 1) - phi_n(i, j + 1)) + 
+                (.5f)*(5.f/(hy*hy) - 1.f/(hx*hx))*(phi_n(i - 1, j) - phi_n(i + 1, j)) + 
                 (.25f)*(1.f/(hx*hx) + 1.f/(hy*hy))*
-                    (phi_n(i - 1, j - 1) - phi_n(i - 1, j + 1) + phi_n(i + 1, j - 1) + phi_n(i + 1, j + 1)) + 
+                    (phi_n(i - 1, j - 1) + phi_n(i - 1, j + 1) + phi_n(i + 1, j - 1) + phi_n(i + 1, j + 1)) + 
                 2*p(i,j) +
                 (.25f)*
                     (p(i - 1, j) + p(i - 1, j) + p(i, j - 1) + p(i, j + 1))
@@ -174,9 +174,10 @@ void JModel::predict(){
     for(int i = 0; i < this->input.T; i++){
         delta = predict_iteration();
         switch_models();
-        std::cerr << delta << "; ";
+        //std::cerr << delta << "; ";
         if(delta > prev_delta && i > 0){
-            std::cerr << "Delta error on iteration " << i+1 << std::endl;
+            std::cerr << "Delta error on iteration " << i+1 << " with " << delta << std::endl;
+            JModel::dump();
             std::exit(-1);
         }
         prev_delta = delta;
@@ -208,5 +209,6 @@ int main(int argc, char const ** argv){
     input->debug();
     JModel* model = new JModel(*input);
     model->predict();
+    std::cout << "Success! Go check .png" << std::endl;
     model->dump();
 }
