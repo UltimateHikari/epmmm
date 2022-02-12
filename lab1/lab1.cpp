@@ -3,6 +3,7 @@
 #include <string>
 #include <stdexcept>
 #include <cmath>
+#include <chrono>
 
 /**
  * JSomething stands for
@@ -96,6 +97,7 @@ class JModel{
         void predict();
         void dumph();
         void dump();
+        void debug();
 };
 
 void JModel::init(){
@@ -126,11 +128,9 @@ void JModel::init_heat_sources(){
     const float R = 0.1*std::min(std::abs(Xb-Xa), std::abs(Yb-Ya));
     const float source = 0.1f;
     const float sink = -0.1f;
-
-    std::cerr << Xs1 << " " << Xs2 << " " << Ys1 << " " << Ys2 << " " << R <<std::endl;
-
-    for(int i = 0; i < input.Ny; i++){
-        for(int j = 0; j < input.Nx; j++){
+    //std::cerr << Xs1 << " " << Xs2 << " " << Ys1 << " " << Ys2 << " " << R <<std::endl;
+    for(int i = 0; i < input.Nx; i++){
+        for(int j = 0; j < input.Ny; j++){
             int index = JModel::ind(i,j);
             if( ((x(j) - Xs1)*(x(j) - Xs1) + (y(i) - Ys1)*(y(i) - Ys1)) < R*R){
                 heat_sources[index] = source;
@@ -208,7 +208,14 @@ int main(int argc, char const ** argv){
     JInput* input = new JInput(argc, argv);
     input->debug();
     JModel* model = new JModel(*input);
-    model->predict();
+
+    auto start = std::chrono::steady_clock::now();
+        model->predict();
+    auto end = std::chrono::steady_clock::now();
+    std::chrono::duration<double> diff = end - start;
+    std::cout << "Time to predict: " << diff.count() << " s\n";
+
     std::cout << "Success! Go check .png" << std::endl;
     model->dump();
+    model->dumph();
 }
