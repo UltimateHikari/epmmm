@@ -125,7 +125,7 @@ void JModel::init_heat_sources(){
     const float Xs2 = Xa + (Xb - Xa)*2/3;
     const float Ys1 = Ya + (Yb - Ya)/3;
     const float Ys2 = Ya + (Yb - Ya)*2/3;
-    const float R = 0.1*std::min(std::abs(Xb-Xa), std::abs(Yb-Ya));
+    const float R = 0.1f*std::min(std::abs(Xb-Xa), std::abs(Yb-Ya));
     const float source = 0.1f;
     const float sink = -0.1f;
     //std::cerr << Xs1 << " " << Xs2 << " " << Ys1 << " " << Ys2 << " " << R <<std::endl;
@@ -151,14 +151,14 @@ float JModel::predict_iteration(){
         for(int j = 1; j < input.Nx - 1; j++){
             int index = JModel::ind(i,j);
             next_model[index] = 
-            (1.f/(5.f/(hx*hx) + 5.f/(hy*hy)))*(
-                (.5f)*(5.f/(hx*hx) - 1.f/(hy*hy))*(phi_n(i, j - 1) - phi_n(i, j + 1)) + 
-                (.5f)*(5.f/(hy*hy) - 1.f/(hx*hx))*(phi_n(i - 1, j) - phi_n(i + 1, j)) + 
-                (.25f)*(1.f/(hx*hx) + 1.f/(hy*hy))*
+            (1.0f/(5.0f/(hx*hx) + 5.0f/(hy*hy)))*(
+                (0.5f)*(5.0f/(hx*hx) - 1.0f/(hy*hy))*(phi_n(i, j - 1) + phi_n(i, j + 1)) + 
+                (0.5f)*(5.0f/(hy*hy) - 1.0f/(hx*hx))*(phi_n(i - 1, j) + phi_n(i + 1, j)) + 
+                (0.25f)*(1.0f/(hx*hx) + 1.0f/(hy*hy))*
                     (phi_n(i - 1, j - 1) + phi_n(i - 1, j + 1) + phi_n(i + 1, j - 1) + phi_n(i + 1, j + 1)) + 
-                2*p(i,j) +
-                (.25f)*
-                    (p(i - 1, j) + p(i - 1, j) + p(i, j - 1) + p(i, j + 1))
+                2.0f*p(i,j) +
+                (0.25f)*
+                    (p(i - 1, j) + p(i + 1, j) + p(i, j - 1) + p(i, j + 1))
             );
             float cur_delta = std::fabs(next_model[index] - current_model[index]);
             if(cur_delta > delta){
@@ -171,13 +171,15 @@ float JModel::predict_iteration(){
 
 void JModel::predict(){
     float delta, prev_delta = 0.0f;
+    std::cerr << "hx: " << hx << ", 1/hx2: " << 1.0f/(hx*hx) << ", K: " << (1.0f/(5.0f/(hx*hx) + 5.0f/(hy*hy))) << std::endl;
     for(int i = 0; i < this->input.T; i++){
         delta = predict_iteration();
         switch_models();
-        //std::cerr << delta << "; ";
+        std::cerr << delta << "; ";
         if(delta > prev_delta && i > 0){
             std::cerr << "Delta error on iteration " << i+1 << " with " << delta << std::endl;
             JModel::dump();
+            JModel::dumph();
             std::exit(-1);
         }
         prev_delta = delta;
