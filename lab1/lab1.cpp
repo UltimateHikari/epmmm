@@ -1,4 +1,5 @@
 #include <iostream>
+#include <iomanip>
 #include <fstream>
 #include <string>
 #include <stdexcept>
@@ -19,18 +20,23 @@ class JInput{
         int Nx;
         int Ny;
         int T;
+        bool isVerbose = false;
         JInput(int argc, char const ** argv);
         void debug();
 };
 
 JInput::JInput(int argc, char const ** argv){
     if(argc - 1 < 3){
-        std::cerr << "Usage: lab1.a [Nx] [Ny] [T]" << std::endl;
+        std::cerr << "Usage: lab1.a [Nx] [Ny] [T] [V]\n"
+            << "\t V>0 - + .txt & deltas in cerr, else silent" << std::endl;
         std::exit(exit_status);
     }
     this->Nx = get_param(argv, 1);
     this->Ny = get_param(argv, 2);
     this->T = get_param(argv, 3);
+    if(argc == 5 && get_param(argv, 4) > 0){
+        isVerbose = true;
+    }
 }
 
 int JInput::get_param(char const ** argv, int ind){
@@ -128,7 +134,9 @@ void JModel::init_heat_sources(){
     const float R = 0.1f*std::min(std::abs(Xb-Xa), std::abs(Yb-Ya));
     const float source = 0.1f;
     const float sink = -0.1f;
-    //std::cerr << Xs1 << " " << Xs2 << " " << Ys1 << " " << Ys2 << " " << R <<std::endl;
+
+    if(input.isVerbose){std::cerr << Xs1 << " " << Xs2 << " " << Ys1 << " " << Ys2 << " " << R <<std::endl;}
+    
     for(int i = 0; i < input.Nx; i++){
         for(int j = 0; j < input.Ny; j++){
             int index = JModel::ind(i,j);
@@ -160,7 +168,7 @@ float JModel::predict_iteration(){
                 (0.25f)*
                     (p(i - 1, j) + p(i + 1, j) + p(i, j - 1) + p(i, j + 1))
             );
-            float cur_delta = std::fabs(next_model[index] - current_model[index]);
+            float cur_delta = std::abs(next_model[index] - current_model[index]);
             if(cur_delta > delta){
                 delta = cur_delta;
             }
@@ -171,15 +179,15 @@ float JModel::predict_iteration(){
 
 void JModel::predict(){
     float delta, prev_delta = 0.0f;
-    std::cerr << "hx: " << hx << ", 1/hx2: " << 1.0f/(hx*hx) << ", K: " << (1.0f/(5.0f/(hx*hx) + 5.0f/(hy*hy))) << std::endl;
     for(int i = 0; i < this->input.T; i++){
         delta = predict_iteration();
         switch_models();
-        std::cerr << delta << "; ";
-        if(delta > prev_delta && i > 0){
+
+        if(input.isVerbose){std::cerr << delta << std::endl;}
+
+        if(delta > prev_delta && std::abs(delta - prev_delta) > 10e-9 && i > 1){
             std::cerr << "Delta error on iteration " << i+1 << " with " << delta << std::endl;
             JModel::dump();
-            JModel::dumph();
             std::exit(-1);
         }
         prev_delta = delta;
@@ -202,11 +210,16 @@ void JModel::dump(){
         std::fwrite(static_cast<void*>(current_model), sizeof(float), input.Nx*input.Ny, f1);
         std::fclose(f1);
     }
+    if(input.isVerbose){
+        JModel::dumph();
+    }
 }
 
 ///////////////
 
 int main(int argc, char const ** argv){
+    std::cerr << std::setprecision(12) ;
+
     JInput* input = new JInput(argc, argv);
     input->debug();
     JModel* model = new JModel(*input);
@@ -219,5 +232,4 @@ int main(int argc, char const ** argv){
 
     std::cout << "Success! Go check .png" << std::endl;
     model->dump();
-    model->dumph();
 }
