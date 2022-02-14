@@ -157,6 +157,19 @@ void JModel::init_heat_sources(){
             heat_sources[index] = 0.0f;
         }
     }
+
+    for(int i = 1; i < input.Nx - 1; i++){
+        for(int j = 1; j < input.Ny - 1; j++){
+            int index = JModel::ind(i,j);
+            next_model[index] = JModel::k5*p(i,j) +
+                JModel::k6*
+                    (p(i - 1, j) + p(i + 1, j) + p(i, j - 1) + p(i, j + 1));
+        }
+    }
+
+    float* tmp = heat_sources;
+    this->heat_sources = next_model;
+    this->next_model = tmp;
 }
 
 float JModel::predict_iteration(){
@@ -164,16 +177,12 @@ float JModel::predict_iteration(){
     for(int i = 1; i < input.Ny - 1; i++){
         for(int j = 1; j < input.Nx - 1; j++){
             int index = JModel::ind(i,j);
-            float* phi_ind = index + current_model;
-            float* p_ind = index + heat_sources;
             next_model[index] = 
-                JModel::k2*(*(phi_ind - 1) + *(phi_ind + 1)) + 
-                JModel::k3*(*(phi_ind - input.Nx) + *(phi_ind + input.Nx)) + 
+                JModel::k2*(phi_n(i, j - 1) + phi_n(i, j + 1)) + 
+                JModel::k3*(phi_n(i - 1, j) + phi_n(i + 1, j)) + 
                 JModel::k4*
-                    (*(phi_ind - input.Nx - 1) + *(phi_ind - input.Nx + 1) + *(phi_ind + input.Nx - 1) + *(phi_ind + input.Nx + 1)) + 
-                JModel::k5*(*p_ind) +
-                JModel::k6*
-                    (*(p_ind - input.Nx) + *(p_ind + input.Nx) + *(p_ind - 1) + *(p_ind + 1));
+                    (phi_n(i - 1, j - 1) + phi_n(i - 1, j + 1) + phi_n(i + 1, j - 1) + phi_n(i + 1, j + 1)) + 
+                p(i,j);
             float cur_delta = std::abs(next_model[index] - current_model[index]);
             if(cur_delta > delta){
                 delta = cur_delta;
