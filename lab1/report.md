@@ -8,33 +8,44 @@ params: 10000 10000 100
 - reference + O2: 112.5 s
 - k precount    :    49 s
 - betterprecount:    46 s
-- index dedup   :   
-- grouping      :
-- array decoup  :
-- row decoup    :
+- grouping      :  48.5 s
+- array decoup  :  50.5 s
+- row decoup    : scrapped
+- index dedup   :    46 s
+- heat precount :
 
 ## Optimisations
 
-### k precount:
+### 1. k precount:
 
 Предвычислил 4 коэффициента при слагаемых при инициализации, поскольку они не меняются
 
-### better precount:
+### 2. better precount:
 
 Исключил остальные умножения в коэффициентах
 
-### Index deduplication
+### 3. Memory access grouping
 
-Индекс вычисляется один раз за итерацию, вместо 14 в инлайн-варианте
+Группировка запросов к данным на одной строке матрицы;  
+*неудачные +2.5s*
 
-### Memory access grouping
+### 4. Array cycle decoupling
 
-Группировка запросов к данным на одной строке матрицы
-
-### Array cycle decoupling
-
-1 цикл -> 2, по heat_sources и по current_model - локализация запросов
+1 цикл -> 2, по heat_sources и по current_model - локализация запросов  
+*еще +2s, откат к 2*
 
 ### Row cycle decoupling
 
 1 цикл -> 3, строчка выше, эта, ниже - дополнительная локализация
+*идея отменена в силу невыгодности на основании предыдущих*
+
+### 5. Index deduplication
+
+Индекс вычисляется один раз за итерацию, вместо 14 в инлайн-варианте
+*никакой разницы с 3, откат с целью читаемости*
+
+### 6. heat pre-count
+
+предподсчет хвоста от источников, поскольку тот статичен.
+Спорное занятие, поскольку требует в самом начале еще одного массива на короткое время,
+но можем воспользоваться current_model.
