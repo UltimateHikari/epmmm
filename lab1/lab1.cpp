@@ -170,7 +170,7 @@ float JModel::predict_iteration(){
                 JModel::k2*(*(phi_ind - 1) + *(phi_ind + 1)) + 
                 JModel::k3*(*(phi_ind - input.Nx) + *(phi_ind + input.Nx)) + 
                 JModel::k4*
-                    (*(phi_ind - input.Nx - 1) + *(phi_ind - input.Nx + 1) + *(phi_ind + input.Nx - 1) + *(phi_ind + input.Nx - 1)) + 
+                    (*(phi_ind - input.Nx - 1) + *(phi_ind - input.Nx + 1) + *(phi_ind + input.Nx - 1) + *(phi_ind + input.Nx + 1)) + 
                 JModel::k5*(*p_ind) +
                 JModel::k6*
                     (*(p_ind - input.Nx) + *(p_ind + input.Nx) + *(p_ind - 1) + *(p_ind + 1));
