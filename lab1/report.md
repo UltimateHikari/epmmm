@@ -8,8 +8,9 @@ params: 10000 10000 100
 - reference + O2: 112.5 s
 - k precount    :    49 s
 - betterprecount:    46 s
-- index dedup   :       s - grouping   : 48.5 s
-- array decoup  :
+  - grouping      : 48.5 s
+  - array decoup  : 50.5 s
+- index dedup   :       s 
 - row decoup    :
 
 ## Optimisations

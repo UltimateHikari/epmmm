@@ -167,7 +167,13 @@ float JModel::predict_iteration(){
             next_model[index] = 
                 JModel::k4*(phi_n(i - 1, j - 1) + phi_n(i - 1, j + 1)) + JModel::k3*phi_n(i - 1, j) +
                 JModel::k2*(phi_n(i, j - 1) + phi_n(i, j + 1)) + 
-                JModel::k4*(phi_n(i + 1, j - 1) + phi_n(i + 1, j + 1)) + JModel::k3*phi_n(i + 1, j) + 
+                JModel::k4*(phi_n(i + 1, j - 1) + phi_n(i + 1, j + 1)) + JModel::k3*phi_n(i + 1, j);
+        }
+    }
+    for(int i = 1; i < input.Ny - 1; i++){
+        for(int j = 1; j < input.Nx - 1; j++){
+            int index = JModel::ind(i,j);
+            next_model[index] += 
                 JModel::k6*p(i - 1, j) +
                 JModel::k5*p(i,j) + JModel::k6*(p(i, j - 1) + p(i, j + 1)) + 
                 JModel::k6*p(i + 1, j);
