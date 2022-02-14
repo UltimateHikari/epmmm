@@ -8,8 +8,7 @@ params: 10000 10000 100
 - reference + O2: 112.5 s
 - k precount    :    49 s
 - betterprecount:    46 s
-- index dedup   :   
-- grouping      :
+- index dedup   :       s - grouping   : 48.5 s
 - array decoup  :
 - row decoup    :
 
@@ -23,13 +22,13 @@ params: 10000 10000 100
 
 Исключил остальные умножения в коэффициентах
 
-### Index deduplication
-
-Индекс вычисляется один раз за итерацию, вместо 14 в инлайн-варианте
-
 ### Memory access grouping
 
 Группировка запросов к данным на одной строке матрицы
+
+### Index deduplication
+
+Индекс вычисляется один раз за итерацию, вместо 14 в инлайн-варианте
 
 ### Array cycle decoupling
 

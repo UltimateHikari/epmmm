@@ -165,13 +165,12 @@ float JModel::predict_iteration(){
         for(int j = 1; j < input.Nx - 1; j++){
             int index = JModel::ind(i,j);
             next_model[index] = 
+                JModel::k4*(phi_n(i - 1, j - 1) + phi_n(i - 1, j + 1)) + JModel::k3*phi_n(i - 1, j) +
                 JModel::k2*(phi_n(i, j - 1) + phi_n(i, j + 1)) + 
-                JModel::k3*(phi_n(i - 1, j) + phi_n(i + 1, j)) + 
-                JModel::k4*
-                    (phi_n(i - 1, j - 1) + phi_n(i - 1, j + 1) + phi_n(i + 1, j - 1) + phi_n(i + 1, j + 1)) + 
-                JModel::k5*p(i,j) +
-                JModel::k6*(0.25f)*
-                    (p(i - 1, j) + p(i + 1, j) + p(i, j - 1) + p(i, j + 1));
+                JModel::k4*(phi_n(i + 1, j - 1) + phi_n(i + 1, j + 1)) + JModel::k3*phi_n(i + 1, j) + 
+                JModel::k6*p(i - 1, j) +
+                JModel::k5*p(i,j) + JModel::k6*(p(i, j - 1) + p(i, j + 1)) + 
+                JModel::k6*p(i + 1, j);
             float cur_delta = std::abs(next_model[index] - current_model[index]);
             if(cur_delta > delta){
                 delta = cur_delta;
