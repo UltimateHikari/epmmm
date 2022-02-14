@@ -7,6 +7,8 @@ params: 10000 10000 100
 - reference + 01:   116 s
 - reference + O2: 112.5 s
 - k precount    :    49 s
+- betterprecount:    46 s
+- index dedup   :   
 - grouping      :
 - array decoup  :
 - row decoup    :
@@ -16,6 +18,10 @@ params: 10000 10000 100
 ### k precount:
 
 Предвычислил 4 коэффициента при слагаемых при инициализации, поскольку они не меняются
+
+### better precount:
+
+Исключил остальные умножения в коэффициентах
 
 ### Index deduplication
 
