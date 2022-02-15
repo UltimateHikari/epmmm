@@ -172,15 +172,6 @@ void JModel::init_heat_sources(){
     this->next_model = tmp;
 }
 
-/*int index = JModel::ind(i,j);
-            float* phi_ind = index + current_model;
-            float* p_ind = index + heat_sources;
-            next_model[index] = 
-                JModel::k2*(*(phi_ind - 1) + *(phi_ind + 1)) + 
-                JModel::k3*(*(phi_ind - input.Nx) + *(phi_ind + input.Nx)) + 
-                JModel::k4*
-                    (*(phi_ind - input.Nx - 1) + *(phi_ind - input.Nx + 1) + *(phi_ind + input.Nx - 1) + *(phi_ind + input.Nx + 1))*/
-
 float JModel::predict_iteration(){
     float delta = 0.0f;
     int index = JModel::ind(1,1);
