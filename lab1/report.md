@@ -17,6 +17,7 @@ with running docker, containerd, postgres daemons (лениво отключат
 - index dedup   :    46 s
 - heat precount :    35 s
 - inc index     :    33 s
+- march=native  :  27.5 s
 
 ## Optimisations
 
@@ -58,6 +59,10 @@ with running docker, containerd, postgres daemons (лениво отключат
 ### 7. Incremental indexes
 
 Вместе с оптимизацией 5., вместо перевычисления индекса каждую итерацию с умножением - только суммирование.
+
+### 8. march=native
+
+Совсем забыл про оптимизацию под архитектуру, к сожалению - выигрыщ заметен.
 
 ## Profiling
 
