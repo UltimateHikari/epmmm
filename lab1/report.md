@@ -75,9 +75,23 @@ with running docker, containerd, postgres daemons (лениво отключат
 ## Profiling
 
 ### Call graph
+```
+    $ make jprof
+    $ ../scripts/20times.sh
+    $ make jcalls
+```
 ![call graph](gprof-profile/callgraph.png?raw=true "Call graph")
 
+### default gcc (O0) flags call graph
+```
+    $ make jprof0
+    $ ../build/lab1pg0 10000 10000 20
+    $ make jcalls0
+```
+
+![call graph](gprof-profile-o0/callgraph.png?raw=true "Call graph")
+![lh call graph](gprof-profile-o0/left-callgraph.png?raw=true "Left half Call graph")
+
 // TODO:
-- call graph for reference and for worsened reference
-- core affinity opt
 - perf profiling and 2 listings
+- roofline model
