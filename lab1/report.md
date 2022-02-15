@@ -18,6 +18,7 @@ with running docker, containerd, postgres daemons (лениво отключат
 - heat precount :    35 s
 - inc index     :    33 s
 - march=native  :  27.5 s
+- affinity      : 33.5 vs 33.52 s*
 
 ## Optimisations
 
@@ -62,9 +63,21 @@ with running docker, containerd, postgres daemons (лениво отключат
 
 ### 8. march=native
 
-Совсем забыл про оптимизацию под архитектуру, к сожалению - выигрыщ заметен.
+Совсем забыл про оптимизацию под архитектуру, к сожалению - выигрыш заметен.
+
+### 9. core affinity
+
+Фиксируем core affinity на, например, первое ядро.
+*Похоже, линковка lpthread нивелирует весь выигрыш от предыдущей оптимизации;*  
+*Однако, если сравнивать с 7 версией при том же Makefile,*  
+есть скромный выигрыш в 2 сотых секунды на среднем от выборки из 20*  
 
 ## Profiling
 
 ### Call graph
 ![call graph](gprof-profile/callgraph.png?raw=true "Call graph")
+
+// TODO:
+- call graph for reference and for worsened reference
+- core affinity opt
+- perf profiling and 2 listings

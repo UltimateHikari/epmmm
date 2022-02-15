@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <cmath>
 #include <chrono>
+#include <pthread.h>
 
 /**
  * JSomething stands for
@@ -246,6 +247,11 @@ int main(int argc, char const ** argv){
     JInput* input = new JInput(argc, argv);
     input->debug();
     JModel* model = new JModel(*input);
+
+    cpu_set_t cpuset;
+    CPU_ZERO(&cpuset);
+    CPU_SET(1, &cpuset);
+    int rc = pthread_setaffinity_np(pthread_self(),sizeof(cpu_set_t), &cpuset);
 
     auto start = std::chrono::steady_clock::now();
         model->predict();

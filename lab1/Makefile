@@ -8,7 +8,7 @@ all: jmain
 jmain:
 	mkdir -p $(BUILDDIR);		\
 	cd $(BUILDDIR);				\
-	g++ -std=c++14 -O2 -march=native ../lab1.cpp -o lab1.a
+	g++ -std=c++14 -O2 -march=native -lpthread ../lab1.cpp -o lab1.a
 
 jgprof:
 	mkdir -p $(BUILDDIR);		\
