@@ -1,11 +1,29 @@
-## Optimisations report
+# Optimisations report
 
+## Задачи
+
+1. Разработать программу, проверить правильность работы.
+2. Базовая оптимизация программы - компилятором и вручную, измерение времени работы после каждой оптимизации.
+3. Для наиболее оптимизированной версии:
+    1. Построить граф вызовов, найти "горячие точки" с точностью до функций.  
+    2. Построить аннотированный листинг, определить «горячие точки» программы с точностью до строк исходного кода и машинных команд.   
+    3. Получить c помощью профилирования:
+        1. среднее число тактов на микрооперацию (или микроопераций на такт)
+        2. процент кэш-промахов для кэшей первого и последнего уровней
+        3. процент неправильно предсказанных переходов
+    4. Сделать предположение о том, что является основной причиной временных затрат (вычислительные операции, обращения в память выполнение команд перехода, …). 
+
+  
+## 1. Environment
+
+- task: `Jacobi method` using `float`s
 - input params  : 10000 10000 100
 - time measuring: average of 10 samples  
 on i7-4712MQ  
 with running docker, containerd, postgres daemons (лениво отключать было)
 
-### Times
+
+## 2. Optimisation times
 - reference     :  1010 s
 - reference + 01:   116 s
 - reference + O2: 112.5 s
@@ -20,7 +38,7 @@ with running docker, containerd, postgres daemons (лениво отключат
 - march=native  :  27.5 s
 - affinity      : 33.5 vs 33.52 s*
 
-## Optimisations
+## 2. Optimisation descriptions
 
 ### 1. k precount:
 
@@ -72,9 +90,9 @@ with running docker, containerd, postgres daemons (лениво отключат
 *Однако, если сравнивать с 7 версией при том же Makefile,*  
 есть скромный выигрыш в 2 сотых секунды на среднем от выборки из 20*  
 
-## Profiling
+## 3. Profiling
 
-### Call graph
+### 3.1 Call graph
 ```
     $ make jprof
     $ ../scripts/20times.sh
@@ -82,7 +100,7 @@ with running docker, containerd, postgres daemons (лениво отключат
 ```
 ![call graph](gprof-profile/callgraph.png?raw=true "Call graph")
 
-### default gcc (O0) flags call graph
+### 3.1 default gcc (O0) flags call graph
 ```
     $ make jprof0
     $ ../build/lab1pg0 10000 10000 20
@@ -92,6 +110,24 @@ with running docker, containerd, postgres daemons (лениво отключат
 ![call graph](gprof-profile-o0/callgraph.png?raw=true "Call graph")
 ![lh call graph](gprof-profile-o0/left-callgraph.png?raw=true "Left half Call graph")
 
-// TODO:
-- perf profiling and 2 listings
-- roofline model
+### 3.2 Annotated listing
+
+# //TODO
+
+### 3.3 Profiling
+
+# //TODO
+
+### 3.4.1 mPipe 
+
+### 3.4.2 Roofline
+
+Построим *roofline* для всех проведенных этапов оптимизации в `intel vtune`.  
+Из очевидных результатов - рост производительности и уменьшение вычислительной сложности после 1 оптимизации,  
+для всех последующих результат похож на погрешность от профилирования.  
+Дополнительная нечистота эксперимента - программы собирались младшей версией компилятора - `9` вместо `11.2.0`, поскольку `vtune` был установлен на другом дистрибутиве, `ubuntu 20`.  
+
+![first roofline](vtune/first_four_roofine.png "first roofline")
+![all roofline](vtune/all_roofline.png "all roofline")
+
+### 3.4 Вывод
