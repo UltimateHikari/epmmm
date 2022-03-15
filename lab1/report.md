@@ -112,13 +112,80 @@ with running docker, containerd, postgres daemons (лениво отключат
 
 ### 3.2 Annotated listing
 
-# //TODO
+# //TOWRITE
 
 ### 3.3 Profiling
 
-# //TODO
+```
+[andy: Code/2022/epmmm/lab1]$ perf stat ./build/lab1.a 10000 10000 100
+JInput: Nx=10000, Ny=10000, T=100
+Time to predict: 27.5118 s
+Success! Go check .png
+
+ Performance counter stats for './build/lab1.a 10000 10000 100':
+
+         28,450.99 msec task-clock:u              #    0.971 CPUs utilized
+                 0      context-switches:u        #    0.000 /sec
+                 0      cpu-migrations:u          #    0.000 /sec
+           390,719      page-faults:u             #   13.733 K/sec
+    90,264,992,824      cycles:u                  #    3.173 GHz
+   223,215,517,466      instructions:u            #    2.47  insn per cycle
+    10,298,885,850      branches:u                #  361.987 M/sec
+         1,046,741      branch-misses:u           #    0.01% of all branches
+
+      29.292790496 seconds time elapsed
+
+      27.667065000 seconds user
+       0.697494000 seconds sys
+```
+
+```
+[andy: Code/2022/epmmm/lab1]$ perf stat     \
+    -e L1-dcache-load-misses,L1-dcache-loads \
+     ./build/lab1.a 10000 10000 100
+JInput: Nx=10000, Ny=10000, T=100
+Time to predict: 27.518 s
+Success! Go check .png
+
+ Performance counter stats for './build/lab1.a 10000 10000 100':
+
+     3,140,692,232      L1-dcache-load-misses:u   #    2.40% of all L1-dcache accesses
+   131,054,578,578      L1-dcache-loads:u
+
+      29.335323215 seconds time elapsed
+
+      27.770801000 seconds user
+       0.694176000 seconds sys
+```
+ 
+```
+[andy: Code/2022/epmmm/lab1]$ perf stat \
+    -e LLC-load-misses,LLC-loads    \
+    ./build/lab1.a 10000 10000 100
+JInput: Nx=10000, Ny=10000, T=100
+Time to predict: 27.6472 s
+Success! Go check .png
+
+ Performance counter stats for './build/lab1.a 10000 10000 100':
+
+        28,533,259      LLC-load-misses:u         #   25.76% of all LL-cache accesses
+       110,759,502      LLC-loads:u
+
+      29.640592112 seconds time elapsed
+
+      27.882727000 seconds user
+       0.681865000 seconds sys
+
+```
+
+- instructions:u            #    2.47  insn per cycle
+- L1-dcache-load-misses:u   #    2.40% of all L1-dcache accesses
+- LLC-load-misses:u         #   25.76% of all LL-cache accesses
+- branch-misses:u           #    0.01% of all branches
 
 ### 3.4.1 mPipe 
+
+![mpipe](vtune/mpipe.png "mpipe")
 
 ### 3.4.2 Roofline
 
