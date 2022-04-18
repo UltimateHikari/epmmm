@@ -20,7 +20,9 @@
 - input params  : 10000 10000 100
 - time measuring: average of 10 samples  
 on i7-4712MQ  
-with running docker, containerd, postgres daemons (лениво отключать было)
+with running docker, containerd, postgres daemons (лениво отключать было)  
+
+каждой следующей оптимизации соответствует отдельный коммит в репозитории - для удобства сравнения
 
 
 ## 2. Optimisation times
@@ -112,7 +114,11 @@ with running docker, containerd, postgres daemons (лениво отключат
 
 ### 3.2 Annotated listing
 
-# //TOWRITE
+![Agner Fog's instruction timings](https://www.agner.org/optimize/instruction_tables.pdf)
+
+Можно заметить, что т.к. почти все команды с суффиксом `ss`, т.к. `scalar single-precision float`, то векторизации не произошло.
+
+![perf report](perf-profile/perf_report.png "perf report")
 
 ### 3.3 Profiling
 
@@ -183,6 +189,9 @@ Success! Go check .png
 - LLC-load-misses:u         #   25.76% of all LL-cache accesses
 - branch-misses:u           #    0.01% of all branches
 
+Теоретический лимит для моего процессора - 4 insn per cycle из-за количества декодеров.
+(https://en.wikichip.org/wiki/intel/microarchitectures/haswell_(client)#Block_Diagram)
+
 ### 3.4.1 mPipe 
 
 ![mpipe](vtune/mpipe.png "mpipe")
@@ -198,3 +207,14 @@ Success! Go check .png
 ![all roofline](vtune/all_roofline.png "all roofline")
 
 ### 3.4 Вывод
+
+- по `roofline` четко можно разделить изначальную программу с -O2 и группу оптимизаций, 
+уменьшившую арифметическую интенсивность и поднявшую производительность.
+- на моей машине программа core-bound, судя по отчетам `vtune`, из-за дисбаланса по портам (см. 3.4.1)
+- 2.47 инструкций за цикл - хороший показатель, при теоретических 4 - в Haswell 4-канальный декодер:  
+(https://en.wikichip.org/wiki/intel/microarchitectures/haswell_(client)#Block_Diagram)
+- неудачные оптимизации по памяти подтвердили, что выигрыш при чтении из памяти будет компенсирован проигрышем при записи и работе с кэшем
+- поскольку компилятор не векторизовал вычисления, следующей логичной оптимизацией будет векторизация
+
+Исходники и коммиты с оптимизациями:  
+[https://github.com/UltimateHikari/epmmm]

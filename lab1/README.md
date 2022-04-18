@@ -8,3 +8,8 @@
     $ make -B && ./build/lab1.a 5000 5000 100
     $ make cleanup
 ```
+
+# Lection Notes:
+
+- stages of compilation and different presentations, can produce them all with special key
+- -flto - optimizations between translation units
