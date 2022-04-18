@@ -22,9 +22,34 @@
 
 ## 1. Optimisation times
 
-- reference (лаб.1)     : 29.92s
+- reference (лаб.1)     : 29.32s
+- flags                 : 30.56s
 
 ## 1. Optimisation descriptions
+
+### 1.0 Reference:
+Отчет по -fopt-info-vec-all:
+векторизаций не производилось
+
+### 1.1.1 Flags:
+Флаги O2-> O3, -ftree-vectorize, -mavx2.  
+Отчет по -fopt-info-vec-all:  
+    ../lab2.cpp:162:26: optimized: loop vectorized using 32 byte vectors
+    ../lab2.cpp:162:26: optimized:  loop versioned for vectorization because of possible aliasing
+    ../lab2.cpp:162:26: optimized: loop vectorized using 16 byte vectors
+    ../lab2.cpp:172:22: optimized: basic block part vectorized using 32 byte vectors
+    ../lab2.cpp:113:14: optimized: basic block part vectorized using 32 byte vectors
+    ../lab2.cpp:131:25: optimized: basic block part vectorized using 32 byte vectors
+    /usr/include/c++/11.2.0/bits/basic_ios.h:462:2: optimized: basic block part vectorized using 32 byte vectors
+    /usr/include/c++/11.2.0/fstream:868:9: optimized: basic block part vectorized using 32 byte vectors
+    ../lab2.cpp:131:25: optimized: basic block part vectorized using 32 byte vectors
+    ../lab2.cpp:97:51: optimized: basic block part vectorized using 32 byte vectors
+
+### 1.1.2 Pragmas & OMP
+Векторизация не применялась, т.к. основной цикл был уже автовекторизован, и время ухудшилось.
+
+### 1.2 Intrinsics
+интринсики для avx2, по схеме креста.
 
 ## 2. Анализ
 
