@@ -213,6 +213,10 @@ void JModel::predict(){
             JModel::dump();
             std::exit(-1);
         }
+
+        if(i % 10 == 0){
+            std::cerr << "Delta on iteration " << i+1 << " equals " << delta << std::endl;
+        }
         prev_delta = delta;
     }
 }

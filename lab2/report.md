@@ -22,8 +22,8 @@
 
 ## 1. Optimisation times
 
-- reference (лаб.1)     : 29.32s
-- flags                 : 30.56s
+- reference (лаб.1)     : 27.30s
+- flags                 : 28.74s
 
 ## 1. Optimisation descriptions
 
