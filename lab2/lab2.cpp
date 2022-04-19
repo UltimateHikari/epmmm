@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <cmath>
 #include <chrono>
+#include <immintrin.h>
 
 /**
  * JSomething stands for
@@ -173,18 +174,37 @@ void JModel::init_heat_sources(){
 }
 
 float JModel::predict_iteration(){
+    // supposing that 8 | Nx, 8 | Ny - correct for 10000
     float delta = 0.0f;
     int index = JModel::ind(1,1);
     float* phi_ind = index + current_model;
     float* p_ind = index + heat_sources;
+
+    __m256 mm_k2 = _mm256_broadcast_ss(&(JModel::k2));
+    __m256 mm_k3 = _mm256_broadcast_ss(&(JModel::k2));
+    __m256 mm_k4 = _mm256_broadcast_ss(&(JModel::k2));
+
     for(int i = 1; i < input.Ny - 1; i++){
+        // _mm256_mul_ps(f,f), _mm256_broadcast_ss(*), _mm256_add_ps(f,f), _mm256_shuffle_ps(f,f,i)
+        
+
+        /*for(int j = 1; j < input.Nx/8 - 1; j++){
+            next_model[index] = 
+                mm_k2*()
+            index += 8;
+
+        }
+        index += 2 // to ind(i+1, 1) from ind(i, Ny)
+        */
+
         #pragma omp simd
         for(int j = 1; j < input.Nx - 1; j++){
             next_model[index] = 
                 JModel::k2*(*(phi_ind - 1) + *(phi_ind + 1)) + 
                 JModel::k3*(*(phi_ind - input.Nx) + *(phi_ind + input.Nx)) + 
                 JModel::k4*
-                    (*(phi_ind - input.Nx - 1) + *(phi_ind - input.Nx + 1) + *(phi_ind + input.Nx - 1) + *(phi_ind + input.Nx + 1)) + 
+                    (*(phi_ind - input.Nx - 1) + *(phi_ind - input.Nx + 1) + 
+                       *(phi_ind + input.Nx - 1) + *(phi_ind + input.Nx + 1)) + 
                 *(p_ind);
             float cur_delta = std::abs(next_model[index] - current_model[index]);
             if(cur_delta > delta){
@@ -246,6 +266,8 @@ void JModel::dump(){
 ///////////////
 
 int main(int argc, char const ** argv){
+    //std::cout << sizeof(float) << " " << sizeof(__m256) << std::endl;
+    //sizeof(float) - 4, sizeof(__mm256) - 32 => 8 floats in vec
     std::cerr << std::setprecision(12) ;
 
     JInput* input = new JInput(argc, argv);
