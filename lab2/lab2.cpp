@@ -178,6 +178,7 @@ float JModel::predict_iteration(){
     float* phi_ind = index + current_model;
     float* p_ind = index + heat_sources;
     for(int i = 1; i < input.Ny - 1; i++){
+        #pragma omp simd
         for(int j = 1; j < input.Nx - 1; j++){
             next_model[index] = 
                 JModel::k2*(*(phi_ind - 1) + *(phi_ind + 1)) + 

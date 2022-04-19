@@ -17,7 +17,7 @@ jmain:
 jgccvect:
 	mkdir -p $(BUILDDIR);		\
 	cd $(BUILDDIR);				\
-	g++ -std=c++14 -O3 -ftree-vectorize -mavx2 -march=native -fopt-info-vec ../lab2.cpp -o lab2.a
+	g++ -std=c++14 -O3 -ftree-vectorize -mavx2 -march=native -fopt-info-vec -fopenmp ../lab2.cpp -o lab2.a
 
 jgprof:
 	mkdir -p $(BUILDDIR);		\

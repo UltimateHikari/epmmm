@@ -24,6 +24,7 @@
 
 - reference (лаб.1)     : 27.30s
 - flags                 : 28.74s
+- pragma simd           : 28.65s
 
 ## 1. Optimisation descriptions
 
@@ -46,7 +47,8 @@
     ../lab2.cpp:97:51: optimized: basic block part vectorized using 32 byte vectors
 
 ### 1.1.2 Pragmas & OMP
-Векторизация не применялась, т.к. основной цикл был уже автовекторизован, и время ухудшилось.
+Внутренний цикл итерации векторизован `#pragma omp simd`, время незначительно улучшилось.
+Компилятор был не прав, получается.
 
 ### 1.2 Intrinsics
 интринсики для avx2, по схеме креста.
