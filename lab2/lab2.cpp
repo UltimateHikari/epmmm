@@ -6,6 +6,8 @@
 #include <cmath>
 #include <chrono>
 #include <immintrin.h>
+#include <cstdlib>
+#include <cstring>
 
 /**
  * JSomething stands for
@@ -108,9 +110,13 @@ class JModel{
 };
 
 void JModel::init(){
-    current_model = new float[input.Nx*input.Ny];
-    next_model = new float[input.Nx*input.Ny];
-    heat_sources = new float[input.Nx*input.Ny];
+    size_t array_size = input.Nx*input.Ny*sizeof(float);
+    current_model = (float*)std::aligned_alloc(32, array_size);
+    memset((void*)current_model, 0, array_size);
+    next_model = (float*)std::aligned_alloc(32, array_size);
+    memset((void*)next_model, 0, array_size);
+    heat_sources = (float*)std::aligned_alloc(32, array_size);
+    memset((void*)heat_sources, 0, array_size);
     this->hx = (Xb-Xa)/(input.Nx - 1);
     this->hy = (Yb-Ya)/(input.Ny - 1);
     this->k1 = (1.0f/(5.0f/(hx*hx) + 5.0f/(hy*hy)));
@@ -122,9 +128,9 @@ void JModel::init(){
 }
 
 JModel::~JModel(){
-    delete current_model;
-    delete next_model;
-    delete heat_sources;
+    free(current_model);
+    free(next_model);
+    free(heat_sources);
 }
 
 void JModel::switch_models(){
@@ -175,30 +181,24 @@ void JModel::init_heat_sources(){
 
 float JModel::predict_iteration(){
     // supposing that 8 | Nx, 8 | Ny - correct for 10000
-    float delta = 0.0f;
+    float delta = 0.0f;    
     int index = JModel::ind(1,1);
+    
     float* phi_ind = index + current_model;
     float* p_ind = index + heat_sources;
 
     __m256 mm_k2 = _mm256_broadcast_ss(&(JModel::k2));
-    __m256 mm_k3 = _mm256_broadcast_ss(&(JModel::k2));
-    __m256 mm_k4 = _mm256_broadcast_ss(&(JModel::k2));
+    __m256 mm_k3 = _mm256_broadcast_ss(&(JModel::k3));
+    __m256 mm_k4 = _mm256_broadcast_ss(&(JModel::k4));
+    const __m256 mask = _mm256_castsi256_ps(_mm256_set1_epi64x(0x7FFFFFFF7FFFFFFF));
+
 
     for(int i = 1; i < input.Ny - 1; i++){
         // _mm256_mul_ps(f,f), _mm256_broadcast_ss(*), _mm256_add_ps(f,f), _mm256_shuffle_ps(f,f,i)
-        
+        // supposing that 8 | Nx, Ny; Nx,Ny > 32
+        // seven before
 
-        /*for(int j = 1; j < input.Nx/8 - 1; j++){
-            next_model[index] = 
-                mm_k2*()
-            index += 8;
-
-        }
-        index += 2 // to ind(i+1, 1) from ind(i, Ny)
-        */
-
-        #pragma omp simd
-        for(int j = 1; j < input.Nx - 1; j++){
+        for(int j = 1; j < 8; j++){
             next_model[index] = 
                 JModel::k2*(*(phi_ind - 1) + *(phi_ind + 1)) + 
                 JModel::k3*(*(phi_ind - input.Nx) + *(phi_ind + input.Nx)) + 
@@ -214,15 +214,76 @@ float JModel::predict_iteration(){
             phi_ind++;
             p_ind++;
         }
+        __m256 mm_delta = _mm256_castsi256_ps(_mm256_set1_epi64x(0));
+        // cycle (no reusing previous vectors)
+        for(int j = 1; j < input.Nx/8 - 1; j++){
+            // up/center/down, left/center/right
+            __m256 mm_ul = _mm256_loadu_ps(phi_ind - input.Nx - 1);
+            __m256 mm_uc = _mm256_load_ps(phi_ind - input.Nx);
+            __m256 mm_ur = _mm256_loadu_ps(phi_ind - input.Nx + 1);
+
+            __m256 mm_cl = _mm256_loadu_ps(phi_ind - 1);
+            __m256 mm_cc = _mm256_load_ps(phi_ind);
+            __m256 mm_cr = _mm256_loadu_ps(phi_ind + 1);
+
+            __m256 mm_dl = _mm256_loadu_ps(phi_ind + input.Nx - 1);
+            __m256 mm_dc = _mm256_load_ps(phi_ind + input.Nx);
+            __m256 mm_dr = _mm256_loadu_ps(phi_ind + input.Nx + 1);
+
+            __m256 mm_p = _mm256_load_ps(p_ind);
+
+            __m256 mm_res = 
+                mm_k2*(mm_cl + mm_cr) + 
+                mm_k3*(mm_uc + mm_dc) + 
+                mm_k4*(mm_ul + mm_ur + mm_dl + mm_dr + mm_p);
+            
+            _mm256_store_ps(next_model + index, mm_res);
+
+            // finding max, mask declared at start
+            mm_delta = _mm256_max_ps(_mm256_and_ps(_mm256_sub_ps(mm_res, mm_cc),mask), mm_delta);
+
+            index += 8;
+            phi_ind += 8;
+            p_ind += 8;
+
+        }
+        // cycle after
+        for(int j = input.Nx - 8; j < input.Nx - 1; j++){
+            next_model[index] = 
+                JModel::k2*(*(phi_ind - 1) + *(phi_ind + 1)) + 
+                JModel::k3*(*(phi_ind - input.Nx) + *(phi_ind + input.Nx)) + 
+                JModel::k4*
+                    (*(phi_ind - input.Nx - 1) + *(phi_ind - input.Nx + 1) + 
+                       *(phi_ind + input.Nx - 1) + *(phi_ind + input.Nx + 1)) + 
+                *(p_ind);
+            float cur_delta = std::abs(next_model[index] - current_model[index]);
+            if(cur_delta > delta){
+                delta = cur_delta;
+            }
+            index++;
+            phi_ind++;
+            p_ind++;
+
+        }
         index += 2; // to ind(i+1, 1) from ind(i, Ny)
         phi_ind += 2;
         p_ind += 2;
+
+        //checking in vector delta - slow, but once:
+        alignas(32) float arr[8];
+        _mm256_store_ps(arr, mm_delta);
+        for(int i = 0; i < 8; i++){
+            delta = (arr[i] > delta ? arr[i] : delta);
+        }
+
     }
+
     return delta;
 }
 
 void JModel::predict(){
     float delta, prev_delta = 0.0f;
+
     for(int i = 0; i < this->input.T; i++){
         delta = predict_iteration();
         switch_models();
@@ -273,7 +334,7 @@ int main(int argc, char const ** argv){
     JInput* input = new JInput(argc, argv);
     input->debug();
     JModel* model = new JModel(*input);
-
+    
     auto start = std::chrono::steady_clock::now();
         model->predict();
     auto end = std::chrono::steady_clock::now();

@@ -12,12 +12,17 @@ all: jmain
 jmain:
 	mkdir -p $(BUILDDIR);		\
 	cd $(BUILDDIR);				\
-	g++ -std=c++14 -O2 -march=native -fopt-info-vec ../lab2.cpp -o lab2.a
+	g++ -std=c++17 -O2 -march=native -fopt-info-vec ../lab2.cpp -o lab2.a
 
 jgccvect:
 	mkdir -p $(BUILDDIR);		\
 	cd $(BUILDDIR);				\
-	g++ -std=c++14 -Ofast -ftree-vectorize -mavx2 -march=native -fopt-info-vec -fopenmp ../lab2.cpp -o lab2.a
+	g++ -std=c++17 -Ofast -ftree-vectorize -mavx2 -march=native -fopt-info-vec -fopenmp ../lab2.cpp -o lab2.a
+
+vecttest:
+	mkdir -p $(BUILDDIR);		\
+	cd $(BUILDDIR);				\
+	g++ -std=c++17 -march=native -fopt-info-vec ../tests.cpp -o tests.a
 
 jgprof:
 	mkdir -p $(BUILDDIR);		\
