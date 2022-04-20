@@ -233,9 +233,13 @@ float JModel::predict_iteration(){
             __m256 mm_p = _mm256_load_ps(p_ind);
 
             __m256 mm_res = 
-                mm_k2*(mm_cl + mm_cr) + 
-                mm_k3*(mm_uc + mm_dc) + 
-                mm_k4*(mm_ul + mm_ur + mm_dl + mm_dr + mm_p);
+                _mm256_fmadd_ps(
+                    mm_k2, (mm_cl + mm_cr),
+                    _mm256_fmadd_ps(
+                        mm_k3, (mm_uc + mm_dc),
+                        mm_k4*(mm_ul + mm_ur + mm_dl + mm_dr + mm_p)
+                    )
+                );
             
             _mm256_store_ps(next_model + index, mm_res);
 

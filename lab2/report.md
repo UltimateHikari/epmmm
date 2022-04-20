@@ -27,6 +27,7 @@
 - pragma simd           : 28.65s
 - Ofast                 : 10.06s
 - "dumb" simd           : 10.20s
+- fma                   : 10.3s
 
 ## 1. Optimisation descriptions
 
