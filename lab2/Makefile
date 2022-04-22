@@ -12,7 +12,7 @@ all: jmain
 jmain:
 	mkdir -p $(BUILDDIR);		\
 	cd $(BUILDDIR);				\
-	g++ -std=c++17 -O2 -march=native -fopt-info-vec ../lab2.cpp -o lab2.a
+	g++ -std=c++17 -O2 -march=native -fopt-info-vec -pg -g ../lab2.cpp -o lab2.a
 
 jgccvect:
 	mkdir -p $(BUILDDIR);		\
