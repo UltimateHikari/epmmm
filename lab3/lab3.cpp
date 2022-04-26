@@ -194,11 +194,12 @@ void JModel::init_heat_sources(){
 float JModel::predict_string(int index, float delta, bool isOddIteration){
     // supposing that 8 | Nx, Ny; Nx,Ny > 32
     // seven before
-    float *phi_ind, *next_ind, *p_ind = heat_sources + index;
+    float *phi_ind, *next_ind; 
+    float *p_ind = heat_sources + index;
 
     if(isOddIteration){
         phi_ind = current_model + index;
-        next_ind = next_ind + index;
+        next_ind = next_model + index;
     }else{
         phi_ind = next_model + index;
         next_ind = current_model + index;
@@ -248,7 +249,7 @@ float JModel::predict_string(int index, float delta, bool isOddIteration){
                 )
             );
         
-        _mm256_store_ps(next_model + index, mm_res);
+        _mm256_store_ps(next_ind, mm_res);
 
         // finding max, mask declared at start
         mm_delta = _mm256_max_ps(_mm256_and_ps(_mm256_sub_ps(mm_res, mm_cc),mask), mm_delta);
@@ -261,7 +262,7 @@ float JModel::predict_string(int index, float delta, bool isOddIteration){
     }
     // cycle after
     for(int j = input.Nx - 8; j < input.Nx - 1; j++){
-        next_model[index] = 
+        *next_ind = 
             JModel::k2*(*(phi_ind - 1) + *(phi_ind + 1)) + 
             JModel::k3*(*(phi_ind - input.Nx) + *(phi_ind + input.Nx)) + 
             JModel::k4*
@@ -297,12 +298,12 @@ float JModel::predict_k_iterations(){
     /**
      * starting slope
      */
+
     for(int i = 1; i <= input.K; i++){
         for(int j = 1; j <= input.K + 1 - i; j++){
             delta = predict_string(JModel::ind(j,1), delta, i % 2);
         }
     }
-
     // main ladder
 
     for(int i = 2; i < input.Ny - 1; i++){
@@ -360,9 +361,10 @@ void JModel::dump(){
         std::fwrite(static_cast<void*>(current_model), sizeof(float), input.Nx*input.Ny, f1);
         std::fclose(f1);
     }
-    if(input.isVerbose){
-        JModel::dumph();
-    }
+    // big oof
+    // if(input.isVerbose){
+    //     JModel::dumph();
+    // }
 }
 
 ///////////////
