@@ -383,7 +383,9 @@ public:
     std::vector<std::thread> thr;
     std::mutex m;
     std::condition_variable cv;
-    std::vector<std::atomic_bool> can_finish;
+    //TODO: bools are shaky, mb ints are better solution
+    std::vector<std::unique_ptr<std::atomic_bool>> is_green_ready; //red->blue needs next green
+    std::vector<std::unique_ptr<std::atomic_bool>> is_blue_ready;  //blue->green needs prev blue done
     bool ready = false;
     JModel& model;
 
@@ -393,8 +395,12 @@ public:
             thr.push_back(std::thread(&JThreads::worker, this, i));
         }
         thr.push_back(std::thread(&JThreads::last_worker, this));
+        for(int i = 0; i < model.input.W; ++i){
+            is_green_ready.push_back(std::make_unique<std::atomic_bool>(false));
+            is_blue_ready.push_back(std::make_unique<std::atomic_bool>(true));
+        }
     }
-    ~JThreads(){
+    void join(){
         for(auto& i : thr){
             i.join();
         }
@@ -406,27 +412,111 @@ public:
     void worker(int id);
     void last_worker();
 
+    inline void first_predict_green(int id);
+    inline void common_predict_green(int id);
+    inline void predict_red(int id);
+    inline void common_predict_blue(int id);
+    inline void last_predict_blue(int id);
+
+    inline void acquire_blue_perm(int id);
+    inline void acquire_green_perm(int id);
+    inline void give_blue_perm(int id);
+    inline void give_green_perm(int id);
+
     void wait_for_start();
+
+    inline int get_shift_for_id(int id);
+    inline int get_length_for_id(int id);
 };
 
 void JThreads::first_worker(){
     int id = 0;
     wait_for_start();
+    std::cerr << "[" + std::to_string(id) + "]: Start\n";
+    for(int i = 0; i < model.input.T/model.input.K; ++i){
+        first_predict_green(id);
+        predict_red(id);
+            acquire_blue_perm(id);
+        common_predict_blue(id);
+            give_green_perm(id);
+    }
+    std::cerr << "[" + std::to_string(id) + "]: Finish\n";
 }
 
 void JThreads::worker(int id){
     wait_for_start();
+    std::cerr << "[" + std::to_string(id) + "]: Start\n";
+    for(int i = 0; i < model.input.T/model.input.K; ++i){
+            acquire_green_perm(id);
+        common_predict_green(id);
+            give_blue_perm(id);
+        predict_red(id);
+            acquire_blue_perm(id);
+        common_predict_blue(id);
+            give_green_perm(id);
+    }
+    std::cerr << "[" + std::to_string(id) + "]: Finish\n";
 }
 
 void JThreads::last_worker(){
     int id = model.input.W - 1;
-    wait_for_start();
+    std::cerr << "[" + std::to_string(id) + "]: Start\n";
+    for(int i = 0; i < model.input.T/model.input.K; ++i){
+            acquire_green_perm(id);
+        common_predict_green(id);
+            give_blue_perm(id);
+        predict_red(id);
+        last_predict_blue(id);
+    }
+    std::cerr << "[" + std::to_string(id) + "]: Finish\n";
+}
+
+inline void JThreads::acquire_blue_perm(int id){
+    // wait for next's green to be ready
+    bool can_proceed = false;
+    while(!can_proceed){
+        can_proceed = is_green_ready.at(id + 1)->load();
+    }
+    is_green_ready.at(id + 1)->store(false);
+}
+inline void JThreads::acquire_green_perm(int id){
+    // wait for prev's blue to be ready
+    // so our green is no longer needed
+    bool can_proceed = false;
+    while(!can_proceed){
+        can_proceed = is_blue_ready.at(id - 1)->load();
+    }
+    is_blue_ready.at(id - 1)->store(false);
+}
+inline void JThreads::give_blue_perm(int id){
+    // tell prev that our green are ready
+    is_green_ready.at(id)->store(true);
+}
+inline void JThreads::give_green_perm(int id){
+    // tell next that our blue are reary
+    // so his green can be updated
+    is_blue_ready.at(id)->store(true);
+}
+
+inline void JThreads::first_predict_green(int id){
+    std::cerr << "[" + std::to_string(id) + "]: green\n";
+}
+inline void JThreads::common_predict_green(int id){
+    std::cerr << "[" + std::to_string(id) + "]: green\n";
+}
+inline void JThreads::predict_red(int id){
+    std::cerr << "[" + std::to_string(id) + "]: red\n";
+}
+inline void JThreads::common_predict_blue(int id){
+    std::cerr << "[" + std::to_string(id) + "]: blue\n";
+}
+inline void JThreads::last_predict_blue(int id){
+    std::cerr << "[" + std::to_string(id) + "]: blue\n";
 }
 
 void JThreads::wait_for_start(){
     std::unique_lock<std::mutex> lk(m);
     cv.wait(lk, [&]{return ready;});
-    std::cerr << std::this_thread::get_id() << "done!\n";
 }
 
 void JThreads::predict(){
@@ -455,6 +545,9 @@ int main(int argc, char const ** argv){
     auto end = std::chrono::steady_clock::now();
 
     std::chrono::duration<double> diff = end - start;
+
+    threads->join();
+
     std::cout << "Time to predict: " << diff.count() << " s\n";
 
     std::cout << "Success! Go check .png" << std::endl;
