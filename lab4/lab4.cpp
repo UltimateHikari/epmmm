@@ -98,9 +98,6 @@ class JModel{
         inline float y(int i){
             return Ya + i*hy;
         }
-        inline int ind(int i, int j){
-            return i*input.Nx + j;
-        }
         inline float phi_n(int i, int j){
             return *(current_model + ind(i,j));
         }
@@ -108,10 +105,13 @@ class JModel{
             return *(heat_sources + ind(i,j));
         }
         float predict_k_iterations();
+    public:
         float predict_string(
             int index, 
             float delta, bool isOddIteration);
-    public:
+        inline int ind(int i, int j){
+            return i*input.Nx + j;
+        }
         JInput const& input;
         JModel(JInput const& input_): input(input_){
             init();
@@ -412,11 +412,11 @@ public:
     void worker(int id);
     void last_worker();
 
-    inline void first_predict_green(int id);
-    inline void common_predict_green(int id);
-    inline void predict_red(int id);
-    inline void common_predict_blue(int id);
-    inline void last_predict_blue(int id);
+    inline float first_predict_green(int id, float delta);
+    inline float common_predict_green(int id, float delta);
+    inline float predict_red(int id, float delta);
+    inline float common_predict_blue(int id, float delta);
+    inline float last_predict_blue(int id, float delta);
 
     inline void acquire_blue_perm(int id);
     inline void acquire_green_perm(int id);
@@ -425,19 +425,28 @@ public:
 
     void wait_for_start();
 
-    inline int get_shift_for_id(int id);
-    inline int get_length_for_id(int id);
+    inline int get_shift_for_id(int id){
+        //NOTE: rigged to work only with W | Nx
+        if(id == 0){
+            return 1;
+        }
+        if(id == model.input.W){
+            return model.input.Nx - 1;
+        }
+        return (model.input.Nx/model.input.W)*id;
+    }
 };
 
 void JThreads::first_worker(){
     int id = 0;
     wait_for_start();
+    float delta = 0.0f;
     std::cerr << "[" + std::to_string(id) + "]: Start\n";
     for(int i = 0; i < model.input.T/model.input.K; ++i){
-        first_predict_green(id);
-        predict_red(id);
+        delta = first_predict_green(id,delta);
+        delta = predict_red(id, delta);
             acquire_blue_perm(id);
-        common_predict_blue(id);
+        delta = common_predict_blue(id,delta);
             give_green_perm(id);
     }
     std::cerr << "[" + std::to_string(id) + "]: Finish\n";
@@ -445,14 +454,15 @@ void JThreads::first_worker(){
 
 void JThreads::worker(int id){
     wait_for_start();
+    float delta = 0.0f;
     std::cerr << "[" + std::to_string(id) + "]: Start\n";
     for(int i = 0; i < model.input.T/model.input.K; ++i){
             acquire_green_perm(id);
-        common_predict_green(id);
+        delta = common_predict_green(id, delta);
             give_blue_perm(id);
-        predict_red(id);
+        delta = predict_red(id, delta);
             acquire_blue_perm(id);
-        common_predict_blue(id);
+        delta = common_predict_blue(id, delta);
             give_green_perm(id);
     }
     std::cerr << "[" + std::to_string(id) + "]: Finish\n";
@@ -460,13 +470,14 @@ void JThreads::worker(int id){
 
 void JThreads::last_worker(){
     int id = model.input.W - 1;
+    float delta = 0.0f;
     std::cerr << "[" + std::to_string(id) + "]: Start\n";
     for(int i = 0; i < model.input.T/model.input.K; ++i){
             acquire_green_perm(id);
-        common_predict_green(id);
+        delta = common_predict_green(id, delta);
             give_blue_perm(id);
-        predict_red(id);
-        last_predict_blue(id);
+        delta = predict_red(id, delta);
+        delta = last_predict_blue(id, delta);
     }
     std::cerr << "[" + std::to_string(id) + "]: Finish\n";
 }
@@ -498,20 +509,57 @@ inline void JThreads::give_green_perm(int id){
     is_blue_ready.at(id)->store(true);
 }
 
-inline void JThreads::first_predict_green(int id){
-    std::cerr << "[" + std::to_string(id) + "]: green\n";
+inline float JThreads::first_predict_green(int id, float delta){
+    //std::cerr << "[" + std::to_string(id) + "]: green\n";
+    for(int i = 1; i < model.input.K; ++i){
+        for(int j = 1; j < model.input.K + 1 - i; ++j){
+            delta = model.predict_string(model.ind(j,1), delta, i % 2);
+        }
+    }
+    return delta;
 }
-inline void JThreads::common_predict_green(int id){
-    std::cerr << "[" + std::to_string(id) + "]: green\n";
+inline float JThreads::common_predict_green(int id, float delta){
+    //std::cerr << "[" + std::to_string(id) + "]: green\n";
+    int shift = get_shift_for_id(id);
+    // ladder is 1 step less than K
+    for(int i = model.input.K - 1; i > 0; i--){
+        for(int j = shift - i; j < shift + i; j++){
+            delta = model.predict_string(model.ind(j,1), delta, (model.input.K - i) % 2);
+        }
+    }
+    return delta;
 }
-inline void JThreads::predict_red(int id){
-    std::cerr << "[" + std::to_string(id) + "]: red\n";
+inline float JThreads::predict_red(int id, float delta){
+    //std::cerr << "[" + std::to_string(id) + "]: red\n";
+    int shift = get_shift_for_id(id);
+    int next_shift = get_shift_for_id(id + 1);
+    for(int i = shift + 1; i <= next_shift - 2*model.input.K + 1; ++i){
+        for(int j = 1; j <= model.input.K; j++){
+            int string = i + model.input.K - j;
+            delta = model.predict_string(model.ind(string, 1), delta, j % 2);
+        }
+    }
+    return delta;
 }
-inline void JThreads::common_predict_blue(int id){
-    std::cerr << "[" + std::to_string(id) + "]: blue\n";
+inline float JThreads::common_predict_blue(int id, float delta){
+    //std::cerr << "[" + std::to_string(id) + "]: blue\n";
+    int next_shift = get_shift_for_id(id + 1);
+    for(int i = 1; i < model.input.K; ++i){
+        for(int j = next_shift - model.input.K + 1 - i; j < next_shift - model.input.K + 1 + i; ++j){
+            delta = model.predict_string(model.ind(j,1), delta, (i + 1) % 2);
+        }
+    }
+    return delta;
 }
-inline void JThreads::last_predict_blue(int id){
-    std::cerr << "[" + std::to_string(id) + "]: blue\n";
+inline float JThreads::last_predict_blue(int id, float delta){
+    //std::cerr << "[" + std::to_string(id) + "]: blue\n";
+    int next_shift = get_shift_for_id(id + 1);
+    for(int i = 1; i < model.input.K; ++i){
+        for(int j = next_shift - model.input.K + 1 - i; j < model.input.Ny - 1; ++j){
+            delta = model.predict_string(model.ind(j,1), delta, (i + 1) % 2);
+        }
+    }
+    return delta;
 }
 
 void JThreads::wait_for_start(){
@@ -542,11 +590,11 @@ int main(int argc, char const ** argv){
 
     auto start = std::chrono::steady_clock::now();
     threads->predict();
+    threads->join();
     auto end = std::chrono::steady_clock::now();
 
     std::chrono::duration<double> diff = end - start;
 
-    threads->join();
 
     std::cout << "Time to predict: " << diff.count() << " s\n";
 
