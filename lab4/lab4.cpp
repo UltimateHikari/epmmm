@@ -69,7 +69,13 @@ int JInput::get_param(char const ** argv, int ind){
 }
 
 void JInput::debug(){
-    std::cout << "JInput: Nx=" << this->Nx << ", Ny=" << this->Ny << ", T=" << this->T << std::endl;
+    std::cout << "JInput: Nx=" << this->Nx 
+    << ", Ny=" << this->Ny 
+    << ", T=" << this->T 
+    << ", K=" << this->K 
+    << ", W=" << this->W 
+    << ", isVerbose=" << this->isVerbose
+    << "\n";
 }
 
 ////////////////////////////////////
@@ -441,7 +447,7 @@ void JThreads::first_worker(){
     int id = 0;
     wait_for_start();
     float delta = 0.0f;
-    std::cerr << "[" + std::to_string(id) + "]: Start\n";
+    // std::cerr << "[" + std::to_string(id) + "]: Start\n";
     for(int i = 0; i < model.input.T/model.input.K; ++i){
         delta = first_predict_green(id,delta);
         delta = predict_red(id, delta);
@@ -449,13 +455,13 @@ void JThreads::first_worker(){
         delta = common_predict_blue(id,delta);
             give_green_perm(id);
     }
-    std::cerr << "[" + std::to_string(id) + "]: Finish\n";
+    // std::cerr << "[" + std::to_string(id) + "]: Finish\n";
 }
 
 void JThreads::worker(int id){
     wait_for_start();
     float delta = 0.0f;
-    std::cerr << "[" + std::to_string(id) + "]: Start\n";
+    // std::cerr << "[" + std::to_string(id) + "]: Start\n";
     for(int i = 0; i < model.input.T/model.input.K; ++i){
             acquire_green_perm(id);
         delta = common_predict_green(id, delta);
@@ -465,13 +471,13 @@ void JThreads::worker(int id){
         delta = common_predict_blue(id, delta);
             give_green_perm(id);
     }
-    std::cerr << "[" + std::to_string(id) + "]: Finish\n";
+    // std::cerr << "[" + std::to_string(id) + "]: Finish\n";
 }
 
 void JThreads::last_worker(){
     int id = model.input.W - 1;
     float delta = 0.0f;
-    std::cerr << "[" + std::to_string(id) + "]: Start\n";
+    // std::cerr << "[" + std::to_string(id) + "]: Start\n";
     for(int i = 0; i < model.input.T/model.input.K; ++i){
             acquire_green_perm(id);
         delta = common_predict_green(id, delta);
@@ -479,7 +485,7 @@ void JThreads::last_worker(){
         delta = predict_red(id, delta);
         delta = last_predict_blue(id, delta);
     }
-    std::cerr << "[" + std::to_string(id) + "]: Finish\n";
+    // std::cerr << "[" + std::to_string(id) + "]: Finish\n";
 }
 
 inline void JThreads::acquire_blue_perm(int id){
@@ -581,23 +587,34 @@ int main(int argc, char const ** argv){
     //std::cout << sizeof(float) << " " << sizeof(__m256) << std::endl;
     //sizeof(float) - 4, sizeof(__mm256) - 32 => 8 floats in vec
     std::cerr << std::setprecision(12) ;
-
+    std::chrono::duration<double> diff;
 
     auto input = std::make_unique<JInput>(argc, argv);
     input->debug();
     auto model = std::make_unique<JModel>(*input);
-    auto threads = std::make_unique<JThreads>(*model);
 
-    auto start = std::chrono::steady_clock::now();
-    threads->predict();
-    threads->join();
-    auto end = std::chrono::steady_clock::now();
+    if(model->input.W > 1){
+        auto threads = std::make_unique<JThreads>(*model);
 
-    std::chrono::duration<double> diff = end - start;
+        auto start = std::chrono::steady_clock::now();
+        threads->predict();
+        threads->join();
+        auto end = std::chrono::steady_clock::now();
 
+        diff = end - start;
+    }
+    if(model->input.W == 1){
+        auto start = std::chrono::steady_clock::now();
+        model->predict();
+        auto end = std::chrono::steady_clock::now();
+
+        diff = end - start;
+    }
 
     std::cout << "Time to predict: " << diff.count() << " s\n";
 
-    std::cout << "Success! Go check .png" << std::endl;
-    model->dump();
+    if(model->input.isVerbose){
+        std::cout << "Success! Go check .png" << std::endl;
+        model->dump();
+    }
 }

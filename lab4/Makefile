@@ -14,6 +14,11 @@ jmain:
 	cd $(BUILDDIR);				\
 	g++ -std=c++17 -O2 -march=native -fopt-info-vec -pg -g -pthread ../lab4.cpp -o lab4.a
 
+jstatic:
+	mkdir -p $(BUILDDIR);		\
+	cd $(BUILDDIR);				\
+	g++ -std=c++17 -static -O2 -march=native -fopt-info-vec -pthread ../lab4.cpp -o lab4s.a
+
 jgccvect:
 	mkdir -p $(BUILDDIR);		\
 	cd $(BUILDDIR);				\
